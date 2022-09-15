@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Type Ahead 👀</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <form class="search-form">
+    <input type="text" class="search" placeholder="City or State">
+    <ul class="suggestions">
+      <li>Filter for a city</li>
+      <li>or a state</li>
+    </ul>
+  </form>
+<script>
+// this is where user types something in the search and matching results show below in real time 
+const endpoint = 'https://gist.githubusercontent.com/Miserlou/c5cd8364bf9b2420bb29/raw/2bf258763cdddd704f8ffd3ea9a3e81d25e2c6f6/cities.json';
+
+const cities = [];
+
+// 1. fetch returns a promise
+fetch(endpoint)
+  .then(blob => blob.json())
+  // 2. above, blob has to be converted from raw form that it's in to json, that's why the '.json()'(which if you console log just blob you can see is a method on the object blob). -> Below, This will then return another promise which is why we have to do .then again (pretty much any time you see '.then', it's a promise, i think)
+  .then(data => cities.push(...data))
+  // 3. above, how to get data into cities -> push the data into cities array, but have to use spread operator because otherwise it would be an array within an array
+  console.log('cities',cities);
+  
+  //4. below, now when user types into search, need to run function that takes massive array and then filter down into a subset where you can then listen for it
+  function findMatches(wordToMatch, cities) {
+    return cities.filter(place => {
+      // here we need to figure out if the city or state matches what was searched (using regex) -> have to create variable for regex bc if put it in match method, it wouldn't work bc it would search for the name of what the variable is called
+      const regex = new RegExp(wordToMatch, 'gi');
+      return place.city.match(regex) || place.state.match(regex)
+
+    });
+  }
+
+  //11. need to add commas to the population displayed
+  function numberWithCommas(x) {
+    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  //5. below, now we need to create the display function
+  function displayMatches() {
+    console.log(this.value);
+    //6. **Above, it seems like 'this' is used mostly when there's an event listener that calls the function
+    const matchArray = findMatches(this.value, cities);
+    //8. above, I don't really understand how 'cities' is being passed through. I think it's through the event listener, but not sure how it's getting that info. Actually, maybe through that cities array???
+    console.log('matchArray',matchArray);
+    //9. below, now that we have the data (always good to do first before any actual displaying on dom), need to loop over the array and display. Also, put the '.join()' at the end to turn it into an array with multiple items to one big string
+    const html = matchArray.map(place => {
+      //10. this section lines 51-53 is done after the map method was completed to highlight the word. it also had to exchange place.city on line 55 with cityName. same for population
+      const regex = new RegExp(this.value, 'gi');
+      const cityName = place.city.replace(regex, `<span class="hl">${this.value}</span>`);
+      const stateName = place.state.replace(regex, `<span class="hl">${this.value}</span>`);
+      return `
+        <li>
+          <span class="name">${cityName}, ${stateName}</span>
+          <span class="population">${numberWithCommas(place.population)}</span>
+        </li>  
+      `;
+    }).join('');
+    suggestions.innerHTML = html;
+  }
+
+  //7. (lines 70-74)
+  const searchInput = document.querySelector('.search');
+  const suggestions = document.querySelector('.suggestions');
+
+  searchInput.addEventListener('change', displayMatches); //'change' you have to click out of search bar for it to run
+  searchInput.addEventListener('keyup', displayMatches);
+  
+</script>
+</body>
+</html>
